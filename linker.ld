@@ -19,12 +19,12 @@ SECTIONS
 	   chosen as a safer option than the traditional 1M. */
 	. = 2M;
 
-	/* First put the multiboot header, as it is required to be put very early
+	/* First put the multiboot2 header, as it is required to be put very early
 	   in the image or the bootloader won't recognize the file format.
 	   Next we'll put the .text section. */
 	.text BLOCK(4K) : ALIGN(4K)
 	{
-		*(.multiboot)
+		*(.multiboot2)
 		*(.text)
 	}
 

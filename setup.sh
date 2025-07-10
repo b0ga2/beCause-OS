@@ -4,8 +4,8 @@
 # command that returns an error
 set -xe
 
-# To assemble the assembly
-as boot.s -o boot.o
+# To assemble the assembly with gcc
+gcc -ffreestanding -O3 -nostdlib -c boot.s -o boot.o
 
 # Linking using the gcc, generating the file myos.bin using freestading,
 # 03 is optimization, nostdlib means no standard libs,
@@ -22,4 +22,4 @@ cp grub.cfg isodir/boot/grub/grub.cfg
 #
 grub2-mkrescue -o myos.iso isodir
 
-qemu-system-x86_64 -cdrom myos.iso
+qemu-system-x86_64 -enable-kvm -cdrom myos.iso

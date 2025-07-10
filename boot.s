@@ -1,25 +1,37 @@
-/* Declare constants for the multiboot header. */
-.set ALIGN,    1<<0             /* align loaded modules on page boundaries */
-.set MEMINFO,  1<<1             /* provide memory map */
-.set FLAGS,    ALIGN | MEMINFO  /* this is the Multiboot 'flag' field */
-.set MAGIC,    0x1BADB002       /* 'magic number' lets bootloader find the header */
-.set CHECKSUM, -(MAGIC + FLAGS) /* checksum of above, to prove we are multiboot */
+.code32 # To define the assembly file as a 32 bit
+
+# TODO: Ler sobre multiboot
+
+/* Declare constants for the multiboot2 header. */
+.set HEADER_LENGHT, header_end - header_start  				/* Little smart way to use labels to know the size of the multiboot header */
+.set ARCHITECTURE,  0<<0			              		    /* specifies the endianness ISAs */
+.set MAGIC,         0xE85250D6                 				/* 'magic number' lets bootloader find the header */
+.set CHECKSUM,      -(HEADER_LENGHT + MAGIC + ARCHITECTURE) /* checksum of above, to prove we are multiboot2 */
 
 /* 
-Declare a multiboot header that marks the program as a kernel. These are magic
-values that are documented in the multiboot standard. The bootloader will
+Declare a multiboot2 header that marks the program as a kernel. These are magic
+values that are documented in the multiboot2 standard. The bootloader will
 search for this signature in the first 8 KiB of the kernel file, aligned at a
 32-bit boundary. The signature is in its own section so the header can be
 forced to be within the first 8 KiB of the kernel file.
 */
-.section .multiboot
+.section .multiboot2
+header_start: 
 .align 4
+/*Has to be in the specific order of the specification*/
 .long MAGIC
-.long FLAGS
+.long ARCHITECTURE
+.long HEADER_LENGHT
 .long CHECKSUM
+# Tags has to be 8-bytes aligned address
+# and since we dont need a tag we just declared the end flag (tag of type ‘0’ and size ‘8’)
+.word 0 # Represents the TYPE of the struct TAG
+.word 0 # Represents the FLAGS of the struct TAG
+.long 8 # Represents the FLAGS of the struct TAG (32 bits -> 4 bytes)
+header_end:
 
 /*
-The multiboot standard does not define the value of the stack pointer register
+The multiboot2 standard does not define the value of the stack pointer register
 (esp) and it is up to the kernel to provide a stack. This allocates room for a
 small stack by creating a symbol at the bottom of it, then allocating 16384
 bytes for it, and finally creating a symbol at the top. The stack grows
@@ -44,6 +56,16 @@ doesn't make sense to return from this function as the bootloader is gone.
 .section .text
 .global _start
 .type _start, @function
+
+check_multiboot:
+	cmpl $0x36d76289, %eax
+	jne error
+	ret
+
+	error:
+		hlt
+		# TODO: Decide on a funny way to return a error 
+
 _start:
 	/*
 	The bootloader has loaded us into 32-bit protected mode on a x86
@@ -63,7 +85,11 @@ _start:
 	stack (as it grows downwards on x86 systems). This is necessarily done
 	in assembly as languages such as C cannot function without a stack.
 	*/
-	mov $stack_top, %esp
+
+	# Registers Calling Convention (32 bits) EDI, ESI, EDX, ECX
+	movl $stack_top, %esp
+	movl %ebx, %edi # This will be a pointer to my multiboot structure to be later used in C
+	call check_multiboot
 
 	/*
 	This is a good place to initialize crucial processor state before the
