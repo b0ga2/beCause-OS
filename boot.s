@@ -1,6 +1,7 @@
 .code32 # To define the assembly file as a 32 bit
 
-# TODO: Ler sobre multiboot
+# Multiboot2 - It's a protocol between GRUB and the kernel that defines 
+# how the kernel is loaded, what memory layout GRUB passes to it, etc.
 
 /* Declare constants for the multiboot2 header. */
 .set HEADER_LENGHT, header_end - header_start  				/* Little smart way to use labels to know the size of the multiboot header */
