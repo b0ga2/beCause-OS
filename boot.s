@@ -9,6 +9,10 @@
 .set MAGIC,         0xE85250D6                 				/* 'magic number' lets bootloader find the header */
 .set CHECKSUM,      -(HEADER_LENGHT + MAGIC + ARCHITECTURE) /* checksum of above, to prove we are multiboot2 */
 
+/*Declare the constants for verifying the CPUID*/
+.set CPUID_EXTENSIONS, 0x80000000 # returns the maximum extended requests for cpuid
+.set CPUID_EXT_FEATURES,  0x80000001 # returns flags containing long mode support among 
+
 /* 
 Declare a multiboot2 header that marks the program as a kernel. These are magic
 values that are documented in the multiboot2 standard. The bootloader will
@@ -67,6 +71,43 @@ check_multiboot:
 		hlt
 		# TODO: Decide on a funny way to return a error 
 
+# To test the CPUID command.
+# The () on the registers are used to dereference
+verify_cpuid:
+	pushf								# Save EFLAGS
+    pushf                               # Push EFLAGS to the stack
+    xorl $0x00200000, (%esp)            # Invert the ID bit (bit 21) in stored EFLAGS
+    popf                                # Load modified EFLAGS (with ID bit inverted)
+    pushf                               # Store modified EFLAGS back onto the stack
+    popl %eax                           # Load modified EFLAGS into EAX
+    xorl (%esp), %eax                   # XOR original with modified to detect change
+    popf                                # Restore original EFLAGS
+    andl $0x00200000, %eax              # Check if ID bit was actually changed
+	jz cpuid_not_supported
+	ret
+
+		cpuid_not_supported:
+			hlt
+			# TODO: Decide on a funny way to return a error 
+
+call_cpuid_to_check_longmode:
+	# to check if the extended function that checks long mode support is available
+	movl $CPUID_EXTENSIONS, %eax
+	cpuid 
+	cmpl $CPUID_EXT_FEATURES, %eax
+	jb no_longmode_supported
+	
+	# the extended function can be used to check for long mode support
+	movl $CPUID_EXT_FEATURES, %eax
+	cpuid
+	testl $CPUID_EXT_FEATURES, %edx
+	jz no_longmode_supported
+	ret
+
+		no_longmode_supported:
+			hlt
+
+		
 _start:
 	/*
 	The bootloader has loaded us into 32-bit protected mode on a x86
@@ -91,6 +132,10 @@ _start:
 	movl $stack_top, %esp
 	movl %ebx, %edi # This will be a pointer to my multiboot structure to be later used in C
 	call check_multiboot
+	call verify_cpuid
+	cpuid
+	# TODO: Enter Long  (https://wiki.osdev.org/Setting_Up_Long_Mode)
+	
 
 	/*
 	This is a good place to initialize crucial processor state before the
