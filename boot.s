@@ -1,5 +1,7 @@
 .code32 # To define the assembly file as a 32 bit
 
+# TODO: Comment what each section is
+
 # Multiboot2 - It's a protocol between GRUB and the kernel that defines 
 # how the kernel is loaded, what memory layout GRUB passes to it, etc.
 
@@ -52,6 +54,14 @@ undefined behavior.
 stack_bottom:
 .skip 16384 # 16 KiB
 stack_top:
+page_table4:
+.skip 4096
+page_table3:
+.skip 4096
+page_table2:
+.skip 4096
+page_table1:
+.skip 4096 * 256
 
 /*
 The linker script specifies _start as the entry point to the kernel and the
@@ -107,6 +117,31 @@ call_cpuid_to_check_longmode:
 		no_longmode_supported:
 			hlt
 
+enable_64_bit_paging:
+	# Skip these 3 lines if paging is already disabled
+	movl %cr0, %ebx
+	andl  ~(1 << 31), %ebx
+	movl %ebx, %cr0
+
+	# Enable Physical Address Extension
+	movl %cr4, %edx
+	orl  (1 << 5), %edx
+	movl %edx, %cr4
+
+	# Set LME (long mode enable)
+	movl 0xC0000080, %ecx
+	rdmsr # used to read to model-specific registers (MSRs) in computer hardware
+	orl  (1 << 8), %eax
+	wrmsr # used to write to model-specific registers (MSRs) in computer hardware
+
+	# Replace 'pml4_table' with the appropriate physical address (and flags, if applicable)
+	movl $pml4_table, %eax
+	movl %eax, %cr3
+
+	# Enable paging (and protected mode, if it isn't already active)
+	orl (1 << 31) | (1 << 0), %ebx
+	movl %ebx, %cr0
+	ret
 		
 _start:
 	/*
@@ -133,7 +168,7 @@ _start:
 	movl %ebx, %edi # This will be a pointer to my multiboot structure to be later used in C
 	call check_multiboot
 	call verify_cpuid
-	cpuid
+	call call_cpuid_to_check_longmode
 	# TODO: Enter Long  (https://wiki.osdev.org/Setting_Up_Long_Mode)
 	
 

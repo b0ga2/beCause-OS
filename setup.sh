@@ -13,6 +13,7 @@ gcc -ffreestanding -O3 -nostdlib -c boot.s -o boot.o
 # -nostdlib - Prevents linking against the standard libraries
 # currently only linking the boot.o 
 # -lgcc means using the linker from gcc
+# TODO: Verify what is linking
 gcc -T linker.ld -o myos.bin -ffreestanding -O3 -nostdlib boot.o -lgcc
 
 mkdir -p isodir/boot/grub
