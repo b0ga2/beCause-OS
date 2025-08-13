@@ -60,8 +60,29 @@ page_table3:
 .skip 4096
 page_table2:
 .skip 4096
-page_table1:
+page_table1: # To be able to map 500 Mbs
 .skip 4096 * 256
+
+/*
+This is the base addr used to modify the Page Tables themselves using recursive mapping:
+0o177777_777_777_777_777_0000 = 0xffff ffff ffff f000
+0o177777 is just the extension to 64 bits*
+This are the addresses that must be used to access the page tables themselves.
++-------+-------------------------------+-------------------------------------+
+| Table | Address                       | Indexes                             |
+| P4    | 0o177777_777_777_777_777_0000 | –                                   |
+| P3    | 0o177777_777_777_777_XXX_0000 | XXX is the P4 index                 |
+| P2    | 0o177777_777_777_XXX_YYY_0000 | like above, and YYY is the P3 index |
+| P1    | 0o177777_777_XXX_YYY_ZZZ_0000 | like above, and ZZZ is the P2 index |
++-------+-------------------------------+-------------------------------------+
+As it can be seen, the addresses may be calculated with the following formula:
+next_table_address = (table_address << 9) | (index << 12)
+The _0000 at the end of the addrs means that they are page table aligned and
+may be used as indexes to read/write from/to a page table.
+For more information:
+https://os.phil-opp.com/page-tables/#mapping-page-tables
+https://wiki.osdev.org/User:Neon/Recursive_Paging
+*/
 
 /*
 The linker script specifies _start as the entry point to the kernel and the
@@ -100,6 +121,7 @@ verify_cpuid:
 			hlt
 			# TODO: Decide on a funny way to return a error 
 
+# Long mode is the usage of 64 bits variables
 call_cpuid_to_check_longmode:
 	# to check if the extended function that checks long mode support is available
 	movl $CPUID_EXTENSIONS, %eax
@@ -135,12 +157,24 @@ enable_64_bit_paging:
 	wrmsr # used to write to model-specific registers (MSRs) in computer hardware
 
 	# Replace 'pml4_table' with the appropriate physical address (and flags, if applicable)
-	movl $pml4_table, %eax
+	movl $page_table4, %eax
 	movl %eax, %cr3
 
 	# Enable paging (and protected mode, if it isn't already active)
 	orl (1 << 31) | (1 << 0), %ebx
 	movl %ebx, %cr0
+	ret
+
+recursive_paging:
+	movl $page_table4, %eax
+
+	# To define wwrite/read and present permissions 
+	# (see https://wiki.osdev.org/Paging#/media/File:64-bit_page_tables1.png)
+	orl $0b11, %eax # equivalent to (0b0000000000000000000011) the $ is needed to the assembly doesnt try to read that address
+
+	# To insert the address of p4 in the last entrie of p4 
+	movl %eax, page_table4 + (511 * 8)
+	
 	ret
 		
 _start:
@@ -169,6 +203,7 @@ _start:
 	call check_multiboot
 	call verify_cpuid
 	call call_cpuid_to_check_longmode
+	call recursive_paging
 	# TODO: Enter Long  (https://wiki.osdev.org/Setting_Up_Long_Mode)
 	
 
