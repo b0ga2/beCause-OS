@@ -5,7 +5,7 @@
 set -xe
 
 # To assemble the assembly with gcc
-gcc -ffreestanding -O3 -nostdlib -c boot.s -o boot.o
+gcc -ffreestanding -O2 -nostdlib -c boot.s -o boot.o
 
 # gcc - Linking using the gcc, 
 # --freestanding - Tells the compiler that the environment is freestanding (no standard library or OS)
@@ -14,7 +14,7 @@ gcc -ffreestanding -O3 -nostdlib -c boot.s -o boot.o
 # currently only linking the boot.o 
 # -lgcc means using the linker from gcc
 # TODO: Verify what is linking
-gcc -T linker.ld -o myos.bin -ffreestanding -O3 -nostdlib boot.o -lgcc
+gcc -T linker.ld -o myos.bin -ffreestanding -O2 -nostdlib boot.o -lgcc
 
 mkdir -p isodir/boot/grub
 

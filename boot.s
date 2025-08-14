@@ -7,7 +7,7 @@
 
 /* Declare constants for the multiboot2 header. */
 .set HEADER_LENGHT, header_end - header_start  				/* Little smart way to use labels to know the size of the multiboot header */
-.set ARCHITECTURE,  0<<0			              		    /* specifies the endianness ISAs */
+.set ARCHITECTURE,  0<<0		 	             		    /* specifies the endianness ISAs */
 .set MAGIC,         0xE85250D6                 				/* 'magic number' lets bootloader find the header */
 .set CHECKSUM,      -(HEADER_LENGHT + MAGIC + ARCHITECTURE) /* checksum of above, to prove we are multiboot2 */
 
@@ -60,7 +60,7 @@ page_table3:
 .skip 4096
 page_table2:
 .skip 4096
-page_table1: # To be able to map 500 Mbs
+page_table1: # To be able to map 512 MBs, each table has 512 entries, each entry is 8 bytes and can map 4096 Bytes in RAM
 .skip 4096 * 256
 
 /*
@@ -168,7 +168,7 @@ enable_64_bit_paging:
 recursive_paging:
 	movl $page_table4, %eax
 
-	# To define wwrite/read and present permissions 
+	# To define write/read and present permissions 
 	# (see https://wiki.osdev.org/Paging#/media/File:64-bit_page_tables1.png)
 	orl $0b11, %eax # equivalent to (0b0000000000000000000011) the $ is needed to the assembly doesnt try to read that address
 
@@ -176,7 +176,64 @@ recursive_paging:
 	movl %eax, page_table4 + (511 * 8)
 	
 	ret
-		
+
+
+fill_page_tables:
+	# To fill the page tables 3 and 2
+	movl $page_table3, %eax
+	movl $page_table2, %ebx
+
+	# To define write/read and present permissions 
+	orl $0b11, %eax
+	orl $0b11, %ebx
+
+	# To insert the address of p4 in p3
+	movl %eax, page_table4
+	movl %ebx, page_table3
+
+	# Since the p1 has 256 tables it has to be done with a loop
+	movl $0, %eax # Counter of p1
+	movl $0, %ebx # Counter of p2
+
+	p2_loop:
+		# Has to be 256 entries since we only increment the counter after the cmp
+		cmpl $256, %ebx
+
+		# If the value is bigger or equal we go to the end label
+		jge end_p2_loop
+
+		# Obtain the entry of p2
+		# the instruction leal only supports factors of 1,2,4 and 8, so we only pass 8 and then shift 9 bits to the left (equals 4096, the size of a page table)
+		leal page_table1(,%ebx,8), %ecx
+		shll $9, %ecx 
+
+		# To add permissions and to insert the address of the p1 table in the entry of p2
+		orl $0b11, %ecx
+		movl %ecx, page_table2(,%ebx,8)
+
+		p1_loop:
+			# Has to be 512 entries since we only increment the counter after the cmp
+			cmpl $512, %eax
+
+			# If the value is bigger or equal we go to the end label
+			jge end_p1_loop
+
+			# To increment the counter and return to beggining of the 2º loop
+			addl $1, %eax
+			jmp p1_loop
+
+		# To allow the p2 loop to continue
+		end_p1_loop:
+
+		# To increment the counter and return to beggining of the loop
+		addl $1, %ebx
+		jmp p2_loop
+	
+	# This label allows to exit the loop
+	end_p2_loop:
+		ret
+
+
 _start:
 	/*
 	The bootloader has loaded us into 32-bit protected mode on a x86
@@ -204,7 +261,10 @@ _start:
 	call verify_cpuid
 	call call_cpuid_to_check_longmode
 	call recursive_paging
+	call fill_page_tables
+	# TODO: Map Page Tables and create GDT
 	# TODO: Enter Long  (https://wiki.osdev.org/Setting_Up_Long_Mode)
+
 	
 
 	/*
