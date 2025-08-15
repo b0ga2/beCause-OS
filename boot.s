@@ -192,7 +192,6 @@ fill_page_tables:
 	movl %ebx, page_table3
 
 	# Since the p1 has 256 tables it has to be done with a loop
-	movl $0, %eax # Counter of p1
 	movl $0, %ebx # Counter of p2
 
 	p2_loop:
@@ -211,12 +210,37 @@ fill_page_tables:
 		orl $0b11, %ecx
 		movl %ecx, page_table2(,%ebx,8)
 
+		movl $0, %eax # Counter of p1
 		p1_loop:
 			# Has to be 512 entries since we only increment the counter after the cmp
 			cmpl $512, %eax
 
 			# If the value is bigger or equal we go to the end label
 			jge end_p1_loop
+
+			# Obtain the initial memory address at 0, this will apply identity mapping
+			# See more in https://wiki.osdev.org/Identity_Paging
+			leal 0(,%eax,8), %ecx	
+
+			# As done before we have to shift it to the left 9 bits to obtain the 4096 bytes, which is the size of a page table
+			shll $9, %ecx 
+
+			# To be able to go through all the addresses in RAM
+			# we use ebx since it counts the quantity of p1 tables already mapped
+			# TODO: this line is junk
+			leal %ebx(, %ebx, 8), %edx
+
+			# It is 13 since (512 * 4096) / 256 , its 256 since (2⁸8)
+			# this allows me to obtain the correct address of the following addresses in RAM
+			shll $13 ,%edx
+
+			# Now we add both registers to obtain the correct address
+			# TODO: write example for future understading
+			addl %edx, %ecx
+
+			# To add permissions and to insert the address of the p1 table in the entry of p2
+			orl $0b11, %ecx
+			movl %ecx, page_table1(,%eax,8)
 
 			# To increment the counter and return to beggining of the 2º loop
 			addl $1, %eax
