@@ -49,6 +49,31 @@ System V ABI standard and de-facto extensions. The compiler will assume the
 stack is properly aligned and failure to align the stack will result in
 undefined behavior.
 */
+
+.section .rodata
+# In this section I will fill the GDT
+# No need to align since thats done in the linker
+
+# The first entry of the GDT is NULL
+beggining_gdt:
+.quad 0
+
+# To define a code segment (64 bits) we use quad
+# From the Acess Byte the following bits are set to 1 : P(47), S(44), E(43), RW(41)
+# From the Flags bits are set to 1: L(53)
+# Since the Limit and the Base are zero, they are defined implicitly
+.quad 1<<47 | 1<<44 | 1<<43 | 1<<41 | 1<<53
+ending_gdt:
+
+# To see more https://wiki.osdev.org/Global_Descriptor_Table#System_Segment_Descriptor
+
+gdtr_label:
+# To define GDTR 
+# To define the SIZE
+.word ending_gdt - beggining_gdt -1
+# To define the OFFSET, it will be the same as virtual address since I'm using Identity mapping
+.quad beggining_gdt
+
 .section .bss
 .align 16
 stack_bottom:
@@ -179,6 +204,9 @@ recursive_paging:
 
 
 fill_page_tables:
+
+	# To see the format of a page table: https://courses.grainger.illinois.edu/cs240/sp2021/notes/paging/pageTableEntry.html
+
 	# To fill the page tables 3 and 2
 	movl $page_table3, %eax
 	movl $page_table2, %ebx
@@ -227,8 +255,8 @@ fill_page_tables:
 
 			# To be able to go through all the addresses in RAM
 			# we use ebx since it counts the quantity of p1 tables already mapped
-			# TODO: this line is junk
-			leal %ebx(, %ebx, 8), %edx
+			# TODO: this line was given by chagpt, might need to check later
+			leal (%ebx,%ebx,8), %edx
 
 			# It is 13 since (512 * 4096) / 256 , its 256 since (2⁸8)
 			# this allows me to obtain the correct address of the following addresses in RAM
@@ -257,6 +285,10 @@ fill_page_tables:
 	end_p2_loop:
 		ret
 
+load_GDT:
+	# TODO: Read https://wiki.osdev.org/GDT_Tutorial and https://wiki.osdev.org/Global_Descriptor_Table#System_Segment_Descriptor later
+	lgdt gdtr_label
+	ret
 
 _start:
 	/*
@@ -285,8 +317,8 @@ _start:
 	call verify_cpuid
 	call call_cpuid_to_check_longmode
 	call recursive_paging
-	call fill_page_tables
-	# TODO: Map Page Tables and create GDT
+	call fill_page_tables # Map Page Tables
+	call load_GDT  # To load the GDT
 	# TODO: Enter Long  (https://wiki.osdev.org/Setting_Up_Long_Mode)
 
 	

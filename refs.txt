@@ -1,2 +1,3 @@
 https://flint.cs.yale.edu/cs421/papers/x86-asm/asm.html
 https://www.gnu.org/software/grub/manual/multiboot2/multiboot.html#Header-tags
+https://os.phil-opp.com/entering-longmode/
