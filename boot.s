@@ -67,8 +67,8 @@ ending_gdt:
 
 # To see more https://wiki.osdev.org/Global_Descriptor_Table#System_Segment_Descriptor
 
-gdtr_label:
 # To define GDTR 
+gdtr_label:
 # To define the SIZE
 .word ending_gdt - beggining_gdt -1
 # To define the OFFSET, it will be the same as virtual address since I'm using Identity mapping
@@ -79,6 +79,7 @@ gdtr_label:
 stack_bottom:
 .skip 16384 # 16 KiB
 stack_top:
+.align 4096
 page_table4:
 .skip 4096
 page_table3:
@@ -157,7 +158,7 @@ call_cpuid_to_check_longmode:
 	# the extended function can be used to check for long mode support
 	movl $CPUID_EXT_FEATURES, %eax
 	cpuid
-	testl $CPUID_EXT_FEATURES, %edx
+	testl $(1 << 29), %edx
 	jz no_longmode_supported
 	ret
 
@@ -166,28 +167,33 @@ call_cpuid_to_check_longmode:
 
 enable_64_bit_paging:
 	# Skip these 3 lines if paging is already disabled
-	movl %cr0, %ebx
-	andl  ~(1 << 31), %ebx
-	movl %ebx, %cr0
+	# movl %cr0, %ebx
+	# andl  ~(1 << 31), %ebx
+	# movl %ebx, %cr0
 
-	# Enable Physical Address Extension
-	movl %cr4, %edx
-	orl  (1 << 5), %edx
-	movl %edx, %cr4
-
-	# Set LME (long mode enable)
-	movl 0xC0000080, %ecx
-	rdmsr # used to read to model-specific registers (MSRs) in computer hardware
-	orl  (1 << 8), %eax
-	wrmsr # used to write to model-specific registers (MSRs) in computer hardware
-
-	# Replace 'pml4_table' with the appropriate physical address (and flags, if applicable)
+	# Replace 'page_table4' with the appropriate physical address (and flags, if applicable)
 	movl $page_table4, %eax
 	movl %eax, %cr3
 
+	# Enable Physical Address Extension, TODO: See what PAE means
+	movl %cr4, %eax
+	orl  $(1 << 5), %eax
+	movl %eax, %cr4
+
+	# Set LME (long mode enable)
+	movl $0xC0000080, %ecx
+	rdmsr # used to read to model-specific registers (MSRs) in computer hardware
+	orl $(1 << 8), %eax
+	orl $(1 << 11), %eax
+	wrmsr # used to write to model-specific registers (MSRs) in computer hardware
+
 	# Enable paging (and protected mode, if it isn't already active)
-	orl (1 << 31) | (1 << 0), %ebx
-	movl %ebx, %cr0
+	movl %cr0, %eax
+	orl $(1 << 31), %eax
+	orl $(1 << 16), %eax
+	movl %eax, %cr0
+
+
 	ret
 
 recursive_paging:
@@ -215,7 +221,7 @@ fill_page_tables:
 	orl $0b11, %eax
 	orl $0b11, %ebx
 
-	# To insert the address of p4 in p3
+	# To insert the address of p3 in p4
 	movl %eax, page_table4
 	movl %ebx, page_table3
 
@@ -256,11 +262,12 @@ fill_page_tables:
 			# To be able to go through all the addresses in RAM
 			# we use ebx since it counts the quantity of p1 tables already mapped
 			# TODO: this line was given by chagpt, might need to check later
-			leal (%ebx,%ebx,8), %edx
+			leal 0(,%ebx,8), %edx
+
 
 			# It is 13 since (512 * 4096) / 256 , its 256 since (2⁸8)
 			# this allows me to obtain the correct address of the following addresses in RAM
-			shll $13 ,%edx
+			shll $9 ,%edx
 
 			# Now we add both registers to obtain the correct address
 			# TODO: write example for future understading
@@ -313,12 +320,18 @@ _start:
 	# Registers Calling Convention (32 bits) EDI, ESI, EDX, ECX
 	movl $stack_top, %esp
 	movl %ebx, %edi # This will be a pointer to my multiboot structure to be later used in C
-	call check_multiboot
-	call verify_cpuid
-	call call_cpuid_to_check_longmode
-	call recursive_paging
+	
+	# call check_multiboot
+	# call verify_cpuid
+	# call call_cpuid_to_check_longmode
+	
+	# call recursive_paging
 	call fill_page_tables # Map Page Tables
+	call enable_64_bit_paging
+	hlt
 	call load_GDT  # To load the GDT
+	ljmp $0x08, $_start_long_mode
+
 	# TODO: Enter Long  (https://wiki.osdev.org/Setting_Up_Long_Mode)
 
 	
@@ -351,17 +364,13 @@ _start:
 	   They are already disabled by the bootloader, so this is not needed.
 	   Mind that you might later enable interrupts and return from
 	   kernel_main (which is sort of nonsensical to do).
-	2) Wait for the next interrupt to arrive with hlt (halt instruction).
-	   Since they are disabled, this will lock up the computer.
-	3) Jump to the hlt instruction if it ever wakes up due to a
-	   non-maskable interrupt occurring or due to system management mode.
 	*/
 	cli
-1:	hlt
-	jmp 1b
+	hlt
 
-/*
-Set the size of the _start symbol to the current location '.' minus its start.
-This is useful when debugging or when you implement call tracing.
-*/
-.size _start, . - _start
+.code64 # This defines that all code after is written in 64 bits
+
+.section .text
+_start_long_mode:
+	hlt
+
