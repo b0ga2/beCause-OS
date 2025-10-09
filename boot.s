@@ -210,87 +210,59 @@ recursive_paging:
 
 
 fill_page_tables:
-
-	# To see the format of a page table: https://courses.grainger.illinois.edu/cs240/sp2021/notes/paging/pageTableEntry.html
-
-	# To fill the page tables 3 and 2
-	movl $page_table3, %eax
-	movl $page_table2, %ebx
-
-	# To define write/read and present permissions 
-	orl $0b11, %eax
-	orl $0b11, %ebx
-
-	# To insert the address of p3 in p4
-	movl %eax, page_table4
-	movl %ebx, page_table3
-
-	# Since the p1 has 256 tables it has to be done with a loop
-	movl $0, %ebx # Counter of p2
-
-	p2_loop:
-		# Has to be 256 entries since we only increment the counter after the cmp
-		cmpl $256, %ebx
-
-		# If the value is bigger or equal we go to the end label
-		jge end_p2_loop
-
-		# Obtain the entry of p2
-		# the instruction leal only supports factors of 1,2,4 and 8, so we only pass 8 and then shift 9 bits to the left (equals 4096, the size of a page table)
-		leal page_table1(,%ebx,8), %ecx
-		shll $9, %ecx 
-
-		# To add permissions and to insert the address of the p1 table in the entry of p2
-		orl $0b11, %ecx
-		movl %ecx, page_table2(,%ebx,8)
-
-		movl $0, %eax # Counter of p1
-		p1_loop:
-			# Has to be 512 entries since we only increment the counter after the cmp
-			cmpl $512, %eax
-
-			# If the value is bigger or equal we go to the end label
-			jge end_p1_loop
-
-			# Obtain the initial memory address at 0, this will apply identity mapping
-			# See more in https://wiki.osdev.org/Identity_Paging
-			leal 0(,%eax,8), %ecx	
-
-			# As done before we have to shift it to the left 9 bits to obtain the 4096 bytes, which is the size of a page table
-			shll $9, %ecx 
-
-			# To be able to go through all the addresses in RAM
-			# we use ebx since it counts the quantity of p1 tables already mapped
-			# TODO: this line was given by chagpt, might need to check later
-			leal 0(,%ebx,8), %edx
-
-
-			# It is 13 since (512 * 4096) / 256 , its 256 since (2⁸8)
-			# this allows me to obtain the correct address of the following addresses in RAM
-			shll $9 ,%edx
-
-			# Now we add both registers to obtain the correct address
-			# TODO: write example for future understading
-			addl %edx, %ecx
-
-			# To add permissions and to insert the address of the p1 table in the entry of p2
-			orl $0b11, %ecx
-			movl %ecx, page_table1(,%eax,8)
-
-			# To increment the counter and return to beggining of the 2º loop
-			addl $1, %eax
-			jmp p1_loop
-
-		# To allow the p2 loop to continue
-		end_p1_loop:
-
-		# To increment the counter and return to beggining of the loop
-		addl $1, %ebx
-		jmp p2_loop
-	
-	# This label allows to exit the loop
-	end_p2_loop:
-		ret
+    # Set up P4 entry 0 to point to P3
+    movl $page_table3, %eax
+    orl $0b11, %eax
+    movl %eax, page_table4
+    
+    # Set up P3 entry 0 to point to P2  
+    movl $page_table2, %eax
+    orl $0b11, %eax
+    movl %eax, page_table3
+    
+    # Set up P2 entries to point to P1 tables
+    movl $0, %ebx
+p2_loop:
+    cmpl $256, %ebx
+    jge end_p2_loop
+    
+    # Calculate P1 table address
+    movl $page_table1, %eax
+    movl %ebx, %ecx
+    imull $4096, %ecx, %ecx  # Each P1 table is 4096 bytes
+    addl %ecx, %eax
+    orl $0b11, %eax
+    movl %eax, page_table2(,%ebx,8)
+    
+    # Fill P1 table with identity mappings
+    movl $0, %eax
+p1_loop:
+    cmpl $512, %eax
+    jge end_p1_loop
+    
+    # Calculate physical address: (ebx * 512 + eax) * 4096
+    movl %ebx, %ecx
+    shll $9, %ecx      # ebx * 512
+    addl %eax, %ecx    # + eax
+    shll $12, %ecx     # * 4096
+    orl $0b11, %ecx    # Present + writable
+    
+    # Calculate P1 entry address
+    movl $page_table1, %edx
+    movl %ebx, %edi
+    imull $4096, %edi, %edi
+    addl %edx, %edi
+    movl %ecx, (%edi,%eax,8)
+    
+    addl $1, %eax
+    jmp p1_loop
+    
+end_p1_loop:
+    addl $1, %ebx
+    jmp p2_loop
+    
+end_p2_loop:
+    ret
 
 load_GDT:
 	# TODO: Read https://wiki.osdev.org/GDT_Tutorial and https://wiki.osdev.org/Global_Descriptor_Table#System_Segment_Descriptor later
@@ -321,18 +293,18 @@ _start:
 	movl $stack_top, %esp
 	movl %ebx, %edi # This will be a pointer to my multiboot structure to be later used in C
 	
-	# call check_multiboot
-	# call verify_cpuid
-	# call call_cpuid_to_check_longmode
-	
-	# call recursive_paging
+	call check_multiboot
+	call verify_cpuid
+	call call_cpuid_to_check_longmode
+	call recursive_paging
 	call fill_page_tables # Map Page Tables
 	call enable_64_bit_paging
-	hlt
 	call load_GDT  # To load the GDT
+
+	# Enter Long  (https://wiki.osdev.org/Setting_Up_Long_Mode)
 	ljmp $0x08, $_start_long_mode
 
-	# TODO: Enter Long  (https://wiki.osdev.org/Setting_Up_Long_Mode)
+	
 
 	
 
@@ -372,5 +344,13 @@ _start:
 
 .section .text
 _start_long_mode:
+	movq $0, %rax 
+    movq %rax, %ds
+    movq %rax, %es
+    movq %rax, %fs
+    movq %rax, %gs
+    movq %rax, %ss
+
+	call main
 	hlt
 

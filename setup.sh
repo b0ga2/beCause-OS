@@ -7,6 +7,10 @@ set -xe
 # To assemble the assembly with gcc
 gcc -ffreestanding -O2 -nostdlib -c boot.s -o boot.o
 
+# To compile the main.c
+# TODO: Look for more compiling warnings options
+gcc -c main.c -o main.o --freestanding -O2 -Wall -Wextra
+
 # gcc - Linking using the gcc, 
 # --freestanding - Tells the compiler that the environment is freestanding (no standard library or OS)
 # -03 - enables aggressive optimizations for performance.
@@ -14,7 +18,7 @@ gcc -ffreestanding -O2 -nostdlib -c boot.s -o boot.o
 # currently only linking the boot.o 
 # -lgcc means using the linker from gcc
 # TODO: Verify what is linking
-gcc -T linker.ld -o myos.bin -ffreestanding -O2 -nostdlib boot.o -lgcc
+gcc -T linker.ld -o myos.bin -ffreestanding -O2 -nostdlib boot.o main.o -lgcc
 
 mkdir -p isodir/boot/grub
 
@@ -29,4 +33,7 @@ grub2-mkrescue -o myos.iso isodir
 # qemu-system-x86_64 - Launches QEMU for emulating a 64-bit x86 system.
 # -enable-kvm - Enables KVM (Kernel-based Virtual Machine) for performance
 # myos.iso - Tells QEMU to use myos.iso as the CD-ROM (bootable ISO) image.
-qemu-system-x86_64 -enable-kvm -cdrom myos.iso
+# The -serial stdio argument used above instructs QEMU to redirect the serial input and output to the host system's stdio stream. This is particularly useful for debugging purposes. 
+qemu-system-x86_64 -enable-kvm -serial stdio -cdrom myos.iso
+
+
