@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# TODO: Since I'm trying to have organized code in the repo i should check a goos structure for a C proj and how to do globbing
+# ref: https://www.lucavall.in/blog/how-to-structure-c-projects-my-experience-best-practices
+
 # This allows to print every command that is currently running and stops in the first
 # command that returns an error
 set -xe

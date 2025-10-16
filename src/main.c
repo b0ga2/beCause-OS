@@ -1,4 +1,6 @@
 #include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
 
 #define PORT 0x3f8 // COM1
 
@@ -77,13 +79,50 @@ void write_serial(char a)
     outb(PORT, a);
 }
 
+
+// TODO: Make a header file for string functions
+size_t strlen(char * string)
+{
+    size_t count = 0;
+
+    // First verify if is not null
+    if (string == NULL)
+    {
+        return 0;
+    }
+
+    //Iterate until we find the null byte
+    while (string[count] != '\0')
+    {
+        count++;
+    }
+    
+    return count;
+    
+}
+
+// TODO: Create a header file just for thr print function
+void print(char * string)
+{
+    //Writes this value in static memory (stays inside the executable)
+    // it points to the first char of my string
+    // char * string = "stringTest";
+
+    for (size_t i = 0; i < strlen(string); i++)
+    {
+        outb(PORT, string[i]);
+    }
+}
+
 // Every function needs to be declared before this one
+// Useful link for C functions: https://wiki.osdev.org/Meaty_Skeleton#libc/string/strlen.c
 void main(void *multiboot2)
 {
     // To initialize the serial port for debugging
     init_serial();
 
-    outb(PORT, 97);
+    // Now in order to have memory allocation, the first step is to parse the content given by multiboot2
+    
 
     // Can't end on a return, since there is no place to return
     while (1);
