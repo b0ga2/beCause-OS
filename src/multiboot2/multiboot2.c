@@ -21,7 +21,6 @@ struct multiboot2_tag
     uint16_t type;
     uint16_t flag;
     uint32_t size;
-
 };
 
 struct multiboot2_header
@@ -30,6 +29,14 @@ struct multiboot2_header
     uint32_t architecture;
     uint32_t header_lenght;
     uint32_t checksum;
+
+    /*
+     * Since the memory is already there, and its passed by the 
+     * grub we know that imediatly after the checksum there will be a flag
+     * so there is no need to declare the tag structure here, besides we dont know
+     * how many flags there are
+     */
+    
 };
 
 void get_multiboot2_header(void *multiboot2)
