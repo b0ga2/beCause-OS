@@ -136,7 +136,8 @@ void main(void *multiboot2)
         halt();
     }
 
-    
+    // Since it's not null we can start parsing the header
+    get_multiboot2_header(multiboot2);
     
 
 
