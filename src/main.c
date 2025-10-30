@@ -114,6 +114,12 @@ void print(char * string)
     }
 }
 
+// I will use this when an "error" or something that isnt supposed to happen, happens :')
+// this way the system will stop and its easier to find the little bastard
+void halt(void ){
+    __asm__ ("hlt");
+}
+
 // Every function needs to be declared before this one
 // Useful link for C functions: https://wiki.osdev.org/Meaty_Skeleton#libc/string/strlen.c
 void main(void *multiboot2)
@@ -122,7 +128,17 @@ void main(void *multiboot2)
     init_serial();
 
     // Now in order to have memory allocation, the first step is to parse the content given by multiboot2
+
+    // First we verify if the reference is not null
+    if (multiboot2 == NULL)
+    {
+        print("Multiboot2 structure is null");
+        halt();
+    }
+
     
+    
+
 
     // Can't end on a return, since there is no place to return
     while (1);

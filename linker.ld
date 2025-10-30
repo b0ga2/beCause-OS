@@ -2,6 +2,8 @@
    designated as the entry point. */
 ENTRY(_start)
 
+/*TODO: Write what each section is for!*/
+
 /* Tell where the various sections of the object files will be put in the final
    kernel image. */
 SECTIONS

@@ -291,7 +291,10 @@ _start:
 
 	# Registers Calling Convention (32 bits) EDI, ESI, EDX, ECX
 	movl $stack_top, %esp
-	movl %ebx, %edi # This will be a pointer to my multiboot structure to be later used in C
+
+	# This will be a pointer to my multiboot structure to be later used in C
+	# the register edi, im passing the first argument to C
+	movl %ebx, %edi
 	
 	call check_multiboot
 	call verify_cpuid

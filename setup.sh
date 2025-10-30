@@ -7,12 +7,14 @@
 # command that returns an error
 set -xe
 
+mkdir -p build
+
 # To assemble the assembly with gcc
 gcc -ffreestanding -O2 -nostdlib -c boot.s -o boot.o
 
 # To compile the main.c
 # TODO: Look for more compiling warnings options
-gcc -c main.c -o main.o --freestanding -O2 -Wall -Wextra
+gcc -c src/main.c -o main.o --freestanding -O2 -Wall -Wextra
 
 # gcc - Linking using the gcc, 
 # --freestanding - Tells the compiler that the environment is freestanding (no standard library or OS)
@@ -21,7 +23,7 @@ gcc -c main.c -o main.o --freestanding -O2 -Wall -Wextra
 # currently only linking the boot.o 
 # -lgcc means using the linker from gcc
 # TODO: Verify what is linking
-gcc -T linker.ld -o myos.bin -ffreestanding -O2 -nostdlib boot.o main.o -lgcc
+gcc -T linker.ld -o myos.bin -ffreestanding -O2 -nostdlib build/boot.o build/main.o -lgcc
 
 mkdir -p isodir/boot/grub
 
