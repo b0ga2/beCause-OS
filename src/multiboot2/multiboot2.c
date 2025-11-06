@@ -1,34 +1,38 @@
 #include <stdint.h>
+#include "print.h"
 
 /*
 Multiboot2 header and tag structure, according to https://www.gnu.org/software/grub/manual/multiboot2/multiboot.html
 
-Offset	Type    Field Name	    Note
-0	    u32	    magic	        required
-4	    u32	    architecture	required
-8	    u32	    header_length	required
-12	    u32	    checksum	    required
-16-XX		    tags	        required
+Boot information consists of fixed part and a series of tags. Its start is 8-bytes aligned. Fixed part is as following:
 
-                +-------------------+
-        u16     | type              |
-        u16     | flags             |
-        u32     | size              |
-                +-------------------+
+        +-------------------+
+u32     | total_size        |
+u32     | reserved          |
+        +-------------------+
+‘total_size’ contains the total size of boot information including this field and terminating tag in bytes
+
+‘reserved’ is always set to zero and must be ignored by OS image
+
+Every tag begins with following fields:
+
+        +-------------------+
+u32     | type              |
+u32     | size              |
+        +-------------------+
 */
+
+// TODO: Read https://www.gnu.org/software/grub/manual/multiboot2/multiboot.html#Header-tags (Section 3.6)
 struct multiboot2_tag
 {
-    uint16_t type;
-    uint16_t flag;
+    uint32_t type;
     uint32_t size;
 };
 
 struct multiboot2_header
 {
-    uint32_t magic;
-    uint32_t architecture;
-    uint32_t header_lenght;
-    uint32_t checksum;
+    uint32_t total_size;
+    uint32_t reserved;
 
     /*
      * Since the memory is already there, and its passed by the 
@@ -41,4 +45,14 @@ struct multiboot2_header
 
 void get_multiboot2_header(void *multiboot2)
 {
+    // Convert the multiboot2 pointer to a pointer to the multiboot2_header struct
+    // we have to create another variable since we can't change the type of multiboot2
+    struct multiboot2_header * multiboot2_aux = (struct multiboot2_header *) multiboot2;
+
+    print("\n teste");
+    // Now we have to parse the content
+    print_int(multiboot2_aux->total_size);
+
+    print("\n após teste");
+
 }

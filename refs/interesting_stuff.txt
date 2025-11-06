@@ -1,0 +1,1 @@
+- Variable shadowing (https://stackoverflow.com/questions/53734399/what-is-variable-shadowing)

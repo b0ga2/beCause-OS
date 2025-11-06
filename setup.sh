@@ -14,7 +14,9 @@ gcc -ffreestanding -O2 -nostdlib -c boot.s -o build/boot.o
 
 # To compile the main.c
 # TODO: Look for more compiling warnings options
-gcc -c src/main.c -o build/main.o --freestanding -O2 -Wall -Wextra
+gcc -c $(find src/ -name '*.c') -I include/ --freestanding -O2 -Wall -Wextra
+
+mv *.o build/
 
 # gcc - Linking using the gcc, 
 # --freestanding - Tells the compiler that the environment is freestanding (no standard library or OS)
@@ -23,7 +25,7 @@ gcc -c src/main.c -o build/main.o --freestanding -O2 -Wall -Wextra
 # currently only linking the boot.o 
 # -lgcc means using the linker from gcc
 # TODO: Verify what is linking
-gcc -T linker.ld -o build/myos.bin -ffreestanding -O2 -nostdlib build/boot.o build/main.o -lgcc
+gcc -T linker.ld -o build/myos.bin -ffreestanding -O2 -nostdlib build/*.o -lgcc
 
 mkdir -p isodir/boot/grub
 
