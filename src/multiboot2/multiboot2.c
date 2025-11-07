@@ -49,9 +49,11 @@ void get_multiboot2_header(void *multiboot2)
     // we have to create another variable since we can't change the type of multiboot2
     struct multiboot2_header * multiboot2_aux = (struct multiboot2_header *) multiboot2;
 
-    print("\n teste");
+    print("\n teste\n");
     // Now we have to parse the content
     print_int(multiboot2_aux->total_size);
+    print("\n");
+    print_int(multiboot2_aux->reserved);
 
     print("\n após teste");
 

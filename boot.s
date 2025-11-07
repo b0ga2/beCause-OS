@@ -249,10 +249,10 @@ p1_loop:
     
     # Calculate P1 entry address
     movl $page_table1, %edx
-    movl %ebx, %edi
-    imull $4096, %edi, %edi
-    addl %edx, %edi
-    movl %ecx, (%edi,%eax,8)
+    movl %ebx, %esi
+    imull $4096, %esi, %esi
+    addl %edx, %esi
+    movl %ecx, (%esi,%eax,8)
     
     addl $1, %eax
     jmp p1_loop
