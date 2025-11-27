@@ -23,7 +23,7 @@ u32     | type              |
 u32     | size              |
         +-------------------+
 
-There are several tags, that are identified by the type
+There are several tags, that are identified by the type, the one with the type 0 is the end
 */
 
 
@@ -33,6 +33,30 @@ struct multiboot2_tag
 {
     uint32_t type;
     uint32_t size;
+};
+
+// Tag with the type 1
+struct multiboot2_boot_command_line
+{
+    uint32_t type;
+    uint32_t size;
+    // It has a third member that is a uint_8t char array
+};
+
+// Tag with the type 2
+struct multiboot2_boot_loader_name
+{
+    uint32_t type;
+    uint32_t size;
+    // It has a third member that is a uint_8t char array
+};
+
+// Tag with the type 21
+struct multiboot2_tag_image_load_base_physical_address
+{
+    uint32_t type;
+    uint32_t size;
+    uint32_t load_base_addr;
 };
 
 struct multiboot2_header
@@ -67,10 +91,49 @@ void get_multiboot2_header(void *multiboot2)
     // multiboot header, since after the header comes the flags
     multiboot2 += sizeof(struct multiboot2_header);
 
+    // This is a way to parse the first tag, by telling C we are now pointing to this structure
     struct multiboot2_tag * multiboot2_tag = (struct multiboot2_tag *) multiboot2;
 
-    print_int(multiboot2_tag->type);
+    while(multiboot2_tag->type != 0){
 
+        print("\nType of tag to be parsed:");
+        print_int(multiboot2_tag->type);
+        print("\n");
+
+        // Based on the type of the tag we parse accordingly
+        switch (multiboot2_tag->type)
+        {
+
+        case 1:
+            struct multiboot2_boot_command_line * multiboot2_tag_1 = (struct multiboot2_boot_command_line *) multiboot2_tag;     
+            
+            // This is a way to go to the string value that is passed through the kernel
+            // print((char *)(multiboot2_tag_1 + 1));
+            
+            print("Tag of type 1 parsed succefully\n");
+            break;  
+           
+        case 2:
+            struct multiboot2_boot_loader_name * multiboot2_tag_2 = (struct multiboot2_boot_loader_name *) multiboot2_tag;     
+            
+            // This is a way to go to the string value that is passed from grub
+            print((char *)(multiboot2_tag_2 + 1));
+
+            print("\nTag of type 2 parsed succefully\n");
+            break; 
+
+        case 21:
+            struct multiboot2_tag_image_load_base_physical_address * multiboot2_tag_21 = (struct multiboot2_tag_image_load_base_physical_address *) multiboot2_tag;     
+            print("Tag of type 21 parsed succefully\n");
+            break;
+        
+        default:
+            break;
+        }
+
+        // We can't just parse the next tag, due to the aligment
+        multiboot2_tag = ((void *)multiboot2_tag) + ((multiboot2_tag->size + 7) & ~7);
+    }
 
     // Now we have to parse the content
     print_int(multiboot2_aux->total_size);
