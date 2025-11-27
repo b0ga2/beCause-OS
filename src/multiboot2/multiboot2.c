@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include "print.h"
 
+// Interesting reading: https://wiki.osdev.org/Multiboot
+
 /*
 Multiboot2 header and tag structure, according to https://www.gnu.org/software/grub/manual/multiboot2/multiboot.html
 
@@ -20,7 +22,11 @@ Every tag begins with following fields:
 u32     | type              |
 u32     | size              |
         +-------------------+
+
+There are several tags, that are identified by the type
 */
+
+
 
 // TODO: Read https://www.gnu.org/software/grub/manual/multiboot2/multiboot.html#Header-tags (Section 3.6)
 struct multiboot2_tag
@@ -45,16 +51,30 @@ struct multiboot2_header
 
 void get_multiboot2_header(void *multiboot2)
 {
+    // Verify if the address is aligned with 8 bytes, with an AND with the value 7 (0b111 verifies that)
+    // a pointer in x86_64 is always 64 bits
+    if((uint64_t)multiboot2 & 7)
+    {
+        print("The pointer address is not aligned");
+        return;
+    }
+
     // Convert the multiboot2 pointer to a pointer to the multiboot2_header struct
     // we have to create another variable since we can't change the type of multiboot2
     struct multiboot2_header * multiboot2_aux = (struct multiboot2_header *) multiboot2;
 
-    print("\n teste\n");
+    // Now we have to start parsing tha multiboot tags, so what we do is add to the pointer the size of the
+    // multiboot header, since after the header comes the flags
+    multiboot2 += sizeof(struct multiboot2_header);
+
+    struct multiboot2_tag * multiboot2_tag = (struct multiboot2_tag *) multiboot2;
+
+    print_int(multiboot2_tag->type);
+
+
     // Now we have to parse the content
     print_int(multiboot2_aux->total_size);
     print("\n");
     print_int(multiboot2_aux->reserved);
-
-    print("\n após teste");
 
 }
