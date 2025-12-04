@@ -51,6 +51,91 @@ struct multiboot2_boot_loader_name
     // It has a third member that is a uint_8t char array
 };
 
+// Tag with the type 4
+struct multiboot2_basic_memory_information
+{
+    uint32_t type;
+    uint32_t size;
+    uint32_t mem_lower;
+    uint32_t mem_upper;
+};
+
+// Tag with the type 5
+struct multiboot2_bios_boot_device
+{
+    uint32_t type;
+    uint32_t size;
+    uint32_t biosdev;
+    uint32_t partition;
+    uint32_t sub_partition;
+};
+
+//Used in the tag of type 6
+struct entry
+{
+    uint64_t base_addr;
+    uint64_t lenght;
+    uint32_t type;
+    uint32_t reserved;
+};
+
+// Tag with the type 6
+struct multiboot2_memory_map
+{
+    uint32_t type;
+    uint32_t size;
+    uint32_t entry_size;
+    uint32_t entry_version;
+    // It has a fifth member which is the entries, but like the tags we dont know
+};
+
+
+// Tag with the type 8
+struct multiboot2_framebuffer_info
+{
+    uint32_t type;
+    uint32_t size;
+    uint64_t framebuffer_addr;
+    uint32_t framebuffer_pitch;
+    uint32_t framebuffer_widht;
+    uint32_t framebuffer_height;
+    uint8_t framebuffer_bpp;
+    uint8_t framebuffer_type;
+    uint8_t reserved;
+    // TODO: Finish this structure
+    
+};
+
+// Interesting reading: https://refspecs.linuxbase.org/elf/gabi4+/ch4.sheader.html
+// Tag with the type 9
+struct multiboot2_elf_symbols
+{
+    uint32_t type;
+    uint32_t size;
+    uint16_t num;
+    uint16_t entsize;
+    uint16_t shndx;
+    uint16_t reserved;
+    // It has a seventh member which is the section header more info see the interesting reading above
+};
+
+
+// Tag with the type 10
+struct multiboot2_apm_table
+{
+    uint32_t type;
+    uint32_t size;
+    uint16_t version;
+    uint16_t cseg;
+    uint32_t offset;
+    uint16_t cseg_16;
+    uint16_t flags;
+    uint16_t cseg_len;
+    uint16_t cseg_16_len;
+    uint16_t dseg_len;
+
+};
+
 // Tag with the type 21
 struct multiboot2_tag_image_load_base_physical_address
 {
@@ -110,7 +195,7 @@ void get_multiboot2_header(void *multiboot2)
             // This is a way to go to the string value that is passed through the kernel
             // print((char *)(multiboot2_tag_1 + 1));
             
-            print("Tag of type 1 parsed succefully\n");
+            print("Tag of type 1 parsed succefully\n\n");
             break;  
            
         case 2:
@@ -119,12 +204,54 @@ void get_multiboot2_header(void *multiboot2)
             // This is a way to go to the string value that is passed from grub
             print((char *)(multiboot2_tag_2 + 1));
 
-            print("\nTag of type 2 parsed succefully\n");
+            print("Tag of type 2 parsed succefully\n\n");
             break; 
+
+        case 4:
+            struct multiboot2_basic_memory_information * multiboot2_tag_4 = (struct multiboot2_basic_memory_information *) multiboot2_tag;     
+
+            print("Tag of type 4 parsed succefully\n\n");
+            break; 
+
+        case 5:
+            struct multiboot2_bios_boot_device * multiboot2_tag_5 = (struct multiboot2_bios_boot_device *) multiboot2_tag;     
+
+            print("Tag of type 5 parsed succefully\n\n");
+            break; 
+
+        case 6:
+            struct multiboot2_memory_map * multiboot2_tag_6 = (struct multiboot2_memory_map *) multiboot2_tag;     
+
+            print("Tag of type 6 parsed succefully\n\n");
+            break;  
+            
+        case 8:
+            struct multiboot2_memory_map * multiboot2_tag_8 = (struct multiboot2_memory_map *) multiboot2_tag;     
+
+            print("Tag of type 8 parsed succefully\n\n");
+            break;
+
+        case 9:
+            struct multiboot2_elf_symbols * multiboot2_tag_9 = (struct multiboot2_elf_symbols *) multiboot2_tag;     
+
+            print("Tag of type 9 parsed succefully\n\n");
+            break;  
+
+        case 10:
+            struct multiboot2_apm_table * multiboot2_tag_10 = (struct multiboot2_apm_table *) multiboot2_tag;     
+
+            print("Tag of type 10 parsed succefully\n\n");
+            break;
+
+        case 14:
+            //struct multiboot2_apm_table * multiboot2_tag_14 = (struct multiboot2_apm_table *) multiboot2_tag;
+
+            print("Tag of type 14 parsed wasnt parsed due to it being legacy\n\n");
+            break;
 
         case 21:
             struct multiboot2_tag_image_load_base_physical_address * multiboot2_tag_21 = (struct multiboot2_tag_image_load_base_physical_address *) multiboot2_tag;     
-            print("Tag of type 21 parsed succefully\n");
+            print("Tag of type 21 parsed succefully\n\n");
             break;
         
         default:
