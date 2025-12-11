@@ -307,10 +307,6 @@ _start:
 	# Enter Long  (https://wiki.osdev.org/Setting_Up_Long_Mode)
 	ljmp $0x08, $_start_long_mode
 
-	
-
-	
-
 	/*
 	This is a good place to initialize crucial processor state before the
 	high-level kernel is entered. It's best to minimize the early

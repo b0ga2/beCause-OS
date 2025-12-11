@@ -263,8 +263,8 @@ void get_multiboot2_header(void *multiboot2)
     }
 
     // Now we have to parse the content
-    print_int(multiboot2_aux->total_size);
-    print("\n");
-    print_int(multiboot2_aux->reserved);
+    // print_int(multiboot2_aux->total_size);
+    // print("\n");
+    // print_int(multiboot2_aux->reserved);
 
 }

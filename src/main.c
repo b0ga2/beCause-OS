@@ -5,6 +5,7 @@
 #include "multiboot2.h"
 #include "print.h"
 #include "utilities.h"
+#include "vga.h"
 
 // Every function needs to be declared before this one
 // Useful link for C functions: https://wiki.osdev.org/Meaty_Skeleton#libc/string/strlen.c
@@ -25,7 +26,7 @@ void main(void *multiboot2)
     // Since it's not null we can start parsing the header
     get_multiboot2_header(multiboot2);
     
-
+    write_string(4,"Hello World\n\n\n\n\n\n\n\n\n\n\n");
 
     // Can't end on a return, since there is no place to return
     while (1);
